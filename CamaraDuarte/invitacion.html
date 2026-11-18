@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <!-- Necesario para que el diseño responsive funcione en celulares -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Invitación</title>
+
+  <!-- Fuente Quicksand -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    *, ::before, ::after { box-sizing: border-box; }
+
+    /* ---------- Página ---------- */
+    body {
+      margin: 50px 0 0;
+      padding: 1rem 1rem 12vh;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;            /* sobre abajo: deja espacio arriba para la carta */
+      font-family: "Quicksand", sans-serif;
+      background: radial-gradient(circle at center, #f7f7f5, #e4e4e0);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ---------- Sobre: medidas, colores y tiempos ---------- */
+    .envelope {
+      --w: 300px;                          /* ancho del sobre */
+      --h: 175px;                          /* alto del sobre */
+      --H: min(calc(var(--w) * .97), 80vh);/* alto de la carta abierta */
+      --font-size: 1rem;
+      --green: #0a3d12;
+      --green-dark: #06300d;
+      --gold: #e0b940;
+
+      /* Duración de cada fase y curva de movimiento */
+      --t-flip: 800ms;                     /* giro del sobre */
+      --t-fold: 550ms;                     /* apertura de la solapa */
+      --t-rise: 600ms;                     /* la carta sube por detrás del sobre */
+      --t-drop: 500ms;                     /* la carta cae al frente */
+      --ease: cubic-bezier(.4, 0, .2, 1);
+      --ease-rise: cubic-bezier(.3, .7, .3, 1);
+
+      /* ===== ESTADO CERRADO (el orden de cierre es el inverso al de apertura) ===== */
+      --flip-rot: rotateY(0deg);
+      --flip-delay: 1450ms;                /* 4.º: el sobre gira de vuelta */
+      --fold-rot: rotateX(0deg);
+      --fold-delay: 1000ms;                /* 3.º: se cierra la solapa */
+      --fold-z: 10;                        /* solapa por encima de todo */
+      --fold-z-delay: calc(var(--fold-delay) + var(--t-fold) / 2); /* cambia de capa a mitad del giro */
+      --rise-y: calc(var(--H) - (var(--h) - 2rem)); /* carta metida: solo asoma su encabezado */
+      --rise-delay: 500ms;                 /* 2.º: la carta baja detrás del sobre */
+      --drop-y: 0px;
+      --drop-delay: 0ms;                   /* 1.º: la carta sube del frente */
+      --win-z: 2;                          /* carta detrás del bolsillo */
+      --win-z-delay: 500ms;                /* cambia de capa entre fases, cuando no se nota */
+
+      position: relative;
+      width: var(--w);
+      height: var(--h);
+      perspective: 1000px;
+      cursor: pointer;
+    }
+
+    @media (min-width: 720px) {
+      .envelope { --w: 600px; --h: 350px; --font-size: 1.25rem; }
+    }
+
+    /* ===== ESTADO ABIERTO: giro → solapa → carta sube → carta cae al frente ===== */
+    .envelope.open {
+      --flip-rot: rotateY(180deg);
+      --flip-delay: 0ms;
+      --fold-rot: rotateX(180deg);
+      --fold-delay: 500ms;
+      --fold-z: 0;
+      --rise-y: calc(var(--h) * -1);       /* sale completa por arriba, sin tocar el bolsillo */
+      --rise-delay: 900ms;
+      --drop-y: calc(var(--h) * .65 + 5px);/* baja y se apoya al frente del sobre */
+      --drop-delay: 1500ms;
+      --win-z: 4;                          /* carta delante del bolsillo */
+      --win-z-delay: 1500ms;
+    }
+
+    /* Sombra del sobre */
+    .envelope::after {
+      content: "";
+      position: absolute;
+      top: 110%;
+      left: 50%;
+      width: calc(var(--w) * .85);
+      height: 40px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: rgba(0, 0, 0, .25);
+      filter: blur(15px);
+    }
+
+    /* Contenedor que gira en 3D */
+    .envelope-inner {
+      display: grid;                       /* frente y reverso en la misma celda */
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transform: var(--flip-rot);
+      transition: transform var(--t-flip) var(--ease) var(--flip-delay);
+      will-change: transform;
+    }
+
+    .envelope-front,
+    .envelope-back {
+      grid-area: 1 / 1;
+      position: relative;
+      isolation: isolate;
+      background: var(--green);
+      box-shadow: inset 0 0 0 4px var(--gold);  /* borde dorado */
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    /* ---------- Frente: remitente y destinatario ---------- */
+    .envelope-front {
+      display: grid;
+      place-content: center;
+      color: #fff;
+      font-size: var(--font-size);
+    }
+    .address { text-align: left; }
+    .address p { margin: 1em 0; }
+    .address .label { font-family: system-ui; font-weight: 200; }
+    .address .name  { font-weight: 800; }
+
+    .postage-stamp { position: absolute; top: 1em; right: .5em; width: 15%; }
+    .postage-stamp img { display: block; width: 100%; height: auto; object-fit: contain; }
+
+    /* ---------- Reverso ---------- */
+    .envelope-back {
+      transform: rotateY(180deg);          /* empieza girado (oculto) */
+      perspective: 1000px;                 /* da profundidad a la solapa */
+    }
+
+    /* Bolsillo del sobre (triángulos laterales e inferior) */
+    .envelope-back::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      background: conic-gradient(
+        transparent 60deg,
+        var(--green) 60deg 120deg,
+        var(--green-dark) 120deg 240deg,
+        var(--green) 240deg 300deg,
+        transparent 300deg
+      );
+    }
+
+    /* Solapa: verde por fuera, amarilla por dentro.
+       El recorte triangular va en las dos caras (no en .top-fold) para no romper el 3D */
+    .top-fold {
+      position: absolute;
+      inset: 0;
+      z-index: var(--fold-z);
+      transform: var(--fold-rot);
+      transform-origin: top;
+      transform-style: preserve-3d;
+      transition: transform var(--t-fold) var(--ease) var(--fold-delay),
+                  z-index 0s linear var(--fold-z-delay);
+      will-change: transform;
+    }
+    .top-fold::before,
+    .top-fold::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      clip-path: polygon(0 0, 50% 55%, 100% 0);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .top-fold::before { background: var(--green); }                                  /* cara exterior */
+    .top-fold::after  { background: linear-gradient(#e6c84f, #f7dc62); transform: rotateY(180deg); } /* cara interior */
+
+    /* ---------- Carta ---------- */
+    /* Ventana que recorta la carta por abajo (para que no se vea fuera del sobre) y deja ver lo de arriba */
+    .letter-window {
+      position: absolute;
+      top: -100vh;
+      bottom: 5px;
+      left: calc(12.5% - 30px);            /* 30px extra a cada lado para que quepa la sombra */
+      width: calc(75% + 60px);
+      overflow: hidden;
+      z-index: var(--win-z);
+      transition: z-index 0s linear var(--win-z-delay);
+    }
+
+    /* Fase 1: la carta sube / baja detrás del sobre */
+    .letter-lift {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      bottom: 0;
+      height: var(--H);
+      transform: translateY(var(--rise-y));
+      transition: transform var(--t-rise) var(--ease-rise) var(--rise-delay);
+      will-change: transform;
+    }
+
+    /* Fase 2: la carta cae al frente / se levanta (tamaño fijo, solo se mueve) */
+    .letter {
+      height: 100%;
+      transform: translateY(var(--drop-y));
+      transition: transform var(--t-drop) var(--ease) var(--drop-delay);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+      will-change: transform;
+    }
+    .letter img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top;
+    }
+
+    /* ---------- Disposición: sobre a la izquierda, confirmación a la derecha ---------- */
+    .page {
+      display: flex;
+      flex-wrap: wrap;                     /* en pantallas angostas la confirmación baja debajo del sobre */
+      align-items: flex-end;
+      justify-content: center;
+      gap: 3rem 4rem;
+      padding-top: 190px;                  /* espacio para que la carta no se corte arriba */
+    }
+    @media (min-width: 720px) { .page { padding-top: 360px; } }
+
+    /* ---------- Tarjeta de confirmación ---------- */
+    .rsvp {
+      width: min(100%, 280px);
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--rsvp-green, #0a3d12);
+      background: #fff;
+      border: 3px solid #e0b940;
+      border-radius: 14px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .15);
+    }
+    .rsvp h2 { margin: 0 0 .25rem; font-size: 1.3rem; }
+    .rsvp p  { margin: 0 0 1.25rem; font-size: .95rem; }
+    .rsvp-buttons { display: flex; gap: .75rem; }
+    .rsvp button {
+      flex: 1;
+      padding: .75rem;
+      font: 700 1rem "Quicksand", sans-serif;
+      border: 2px solid #0a3d12;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform .15s, background .15s, color .15s;
+    }
+    .rsvp button:hover:not(:disabled) { transform: translateY(-2px); }
+    .rsvp button:disabled { opacity: .5; cursor: default; }
+    .btn-yes { background: #0a3d12; color: #fff; }
+    .btn-no  { background: #fff; color: #0a3d12; }
+    .rsvp-status { min-height: 1.5em; margin-top: 1rem; font-weight: 700; }
+    .rsvp-change {
+      margin-top: .5rem;
+      padding: 0 !important;
+      border: 0 !important;
+      background: none;
+      color: #0a3d12;
+      font-size: .85rem !important;
+      font-weight: 400 !important;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+<main class="page">
+
+  <div class="envelope" role="button" tabindex="0" aria-label="Abrir invitación">
+    <div class="envelope-inner">
+
+      <!-- Cara frontal -->
+      <div class="envelope-front">
+        <div class="postage-stamp">
+          <img src="img/LogoCCPPD.png" alt="Logo de la Cámara">
+        </div>
+        <div class="address">
+          <p><span class="label">De:</span> <span class="name">Cámara de Comercio y Producción de la Prov. Duarte</span></p>
+          <p><span class="label">Para:</span> <span class="name" id="invitado">Estimado invitado</span></p>
+        </div>
+      </div>
+
+      <!-- Cara trasera: solapa + carta -->
+      <div class="envelope-back">
+        <div class="top-fold"></div>
+        <div class="letter-window">
+          <div class="letter-lift">
+            <div class="letter">
+              <img src="img/CartaInvitacion.png" alt="Carta de invitación">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Confirmación de asistencia -->
+  <section class="rsvp">
+    <h2>¿Nos acompaña?</h2>
+    <p>Confirme su asistencia con un clic.</p>
+    <div class="rsvp-buttons">
+      <button type="button" class="btn-yes" data-resp="Sí">Sí asistiré</button>
+      <button type="button" class="btn-no"  data-resp="No">No podré</button>
+    </div>
+    <div class="rsvp-status" role="status" aria-live="polite"></div>
+    <button type="button" class="rsvp-change" hidden>Cambiar respuesta</button>
+  </section>
+
+</main>
+
+<script>
+  // ===== Abrir / cerrar el sobre =====
+  const sobre = document.querySelector('.envelope');
+  const conMouse = matchMedia('(hover: hover)').matches; // false en celulares y tablets
+
+  if (conMouse) {
+    // Computadora: se abre al pasar el mouse y se cierra al salir
+    sobre.addEventListener('mouseenter', () => sobre.classList.add('open'));
+    sobre.addEventListener('mouseleave', () => sobre.classList.remove('open'));
+  } else {
+    // Celular: un toque en cualquier parte del sobre lo abre o lo cierra
+    sobre.addEventListener('click', (e) => {
+      // Si ya está abierto, tocar la carta no la cierra (así se puede leer con calma)
+      if (sobre.classList.contains('open') && e.target.closest('.letter-window')) return;
+      sobre.classList.toggle('open');
+    });
+  }
+
+  // Teclado (Enter o Espacio) para accesibilidad
+  sobre.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      sobre.classList.toggle('open');
+    }
+  });
+
+  // Nombre del invitado: se toma del enlace, ej: ...?para=Orietta%20García
+  const parametro = new URLSearchParams(location.search).get('para');
+  const invitado = (parametro || '').trim().slice(0, 80);
+  if (invitado) document.getElementById('invitado').textContent = invitado; // textContent evita código malicioso
+
+  // ===== CONFIGURACIÓN: pega aquí los datos de tu Formulario de Google =====
+  const CONFIG = {
+    // Enlace del formulario cambiando "viewform" por "formResponse"
+    action: 'https://docs.google.com/forms/d/e/1FAIpQLSfLR5Uvmecu1aQXvh4whgVkc2Lpjr-HEeh7NgtZeVWFxN0N9w/formResponse',
+    // ID de la pregunta de opción múltiple (Sí / No), ej: 'entry.1234567890'
+    entryRespuesta: 'entry.1105648010',
+    // (Opcional) ID de la pregunta "Nombre". Déjalo vacío '' si no la tienes
+    entryNombre: 'entry.10796261',
+    // Nombre que se enviará si usas entryNombre (viene del enlace)
+    nombre: invitado || 'Sin nombre'
+  };
+
+  const botones = document.querySelectorAll('.rsvp-buttons button');
+  const estado  = document.querySelector('.rsvp-status');
+  const cambiar = document.querySelector('.rsvp-change');
+
+  // Habilita o deshabilita los botones Sí / No
+  const bloquear = (valor) => botones.forEach(b => b.disabled = valor);
+
+  // Envía la respuesta al Formulario de Google
+  async function enviar(respuesta) {
+    if (CONFIG.action.includes('TU_ID')) {
+      estado.textContent = 'Falta configurar el formulario.';
+      return;
+    }
+    bloquear(true);
+    estado.textContent = 'Enviando…';
+
+    const datos = new URLSearchParams();
+    datos.append(CONFIG.entryRespuesta, respuesta);
+    if (CONFIG.entryNombre) datos.append(CONFIG.entryNombre, CONFIG.nombre);
+
+    try {
+      // no-cors: Google no devuelve respuesta legible, pero el dato sí se guarda
+      await fetch(CONFIG.action, { method: 'POST', mode: 'no-cors', body: datos });
+      estado.textContent = respuesta === 'Sí'
+        ? '¡Gracias! Su asistencia quedó confirmada.'
+        : 'Gracias por avisarnos. Lamentamos que no pueda acompañarnos.';
+      cambiar.hidden = false;
+    } catch (e) {
+      estado.textContent = 'No se pudo enviar. Intente de nuevo.';
+      bloquear(false);
+    }
+  }
+
+  botones.forEach(b => b.addEventListener('click', () => enviar(b.dataset.resp)));
+
+  // Permite corregir la respuesta (se registra una nueva en el formulario)
+  cambiar.addEventListener('click', () => {
+    estado.textContent = '';
+    cambiar.hidden = true;
+    bloquear(false);
+  });
+</script>
+
+</body>
+</html>
