@@ -297,7 +297,7 @@
         <div class="letter-window">
           <div class="letter-lift">
             <div class="letter">
-              <img src="img/InvitacionMisa.jpeg" alt="Carta de invitación">
+              <img id="cartaImg" src="img/CartaInvitacion.png" alt="Carta de invitación">
             </div>
           </div>
         </div>
@@ -362,6 +362,25 @@
     // Nombre que se enviará si usas entryNombre (viene del enlace)
     nombre: invitado || 'Sin nombre'
   };
+
+  // ===== LISTADO DE HONORÍFICOS =====
+const CARTAS = {
+  normal:     'img/CartaInvitacion.png',
+  honorifico: 'img/CartaHonorifico.png'
+};
+
+const honorificos = [
+  'Orietta García',
+  'Juan Pérez',
+  'María Rodríguez'
+];
+
+// Quita tildes y mayúsculas para comparar sin errores
+const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const setHonorificos = new Set(honorificos.map(norm));
+
+const esHonorifico = setHonorificos.has(norm(invitado));
+document.getElementById('cartaImg').src = esHonorifico ? CARTAS.honorifico : CARTAS.normal;
 
   const botones = document.querySelectorAll('.rsvp-buttons button');
   const estado  = document.querySelector('.rsvp-status');
