@@ -423,6 +423,17 @@ document.getElementById('cartaImg').src = esHonorifico ? CARTAS.honorifico : CAR
     cambiar.hidden = true;
     bloquear(false);
   });
+
+  // ===== APERTURA AUTOMÁTICA (solo celulares) =====
+const SEGUNDOS = 6;                        // cambia el tiempo aquí (5 a 10)
+
+if (!conMouse) {
+  const temporizador = setTimeout(() => sobre.classList.add('open'), SEGUNDOS * 1000);
+
+  // Si la persona toca antes, cancela el temporizador para que no interfiera
+  sobre.addEventListener('click', () => clearTimeout(temporizador), { once: true });
+}
+
 </script>
 
 </body>
