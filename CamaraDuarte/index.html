@@ -297,7 +297,7 @@
         <div class="letter-window">
           <div class="letter-lift">
             <div class="letter">
-              <img id="cartaImg" src="img/CartaInvitacion.png" alt="Carta de invitación">
+              <img id="cartaImg" src="img/CartaMiembros.jpg" alt="Carta de invitación">
             </div>
           </div>
         </div>
@@ -365,8 +365,8 @@
 
   // ===== LISTADO DE HONORÍFICOS =====
 const CARTAS = {
-  normal:     'img/CartaInvitacion.png',
-  honorifico: 'img/CartaHonorifico.png'
+  normal:     'img/CartaMiembros.jpg',
+  honorifico: 'img/CartaMiembrosHonorificos.jpg'
 };
 
 const honorificos = [
@@ -425,7 +425,7 @@ document.getElementById('cartaImg').src = esHonorifico ? CARTAS.honorifico : CAR
   });
 
   // ===== APERTURA AUTOMÁTICA (solo celulares) =====
-const SEGUNDOS = 5;                        // cambia el tiempo aquí (5 a 10)
+const SEGUNDOS = 4;                        // cambia el tiempo aquí (5 a 10)
 
 if (!conMouse) {
   const temporizador = setTimeout(() => sobre.classList.add('open'), SEGUNDOS * 1000);
