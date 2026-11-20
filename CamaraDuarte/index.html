@@ -377,9 +377,12 @@ const honorificos = [
   'José Antonio Díaz Díaz',
   'Altagracia Vargas'
 ];
-
-// Quita tildes y mayúsculas para comparar sin errores
-const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+// Quita tildes, mayúsculas, espacios raros y dobles espacios
+const norm = s => s.normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/\s+/g, ' ')
+  .toLowerCase()
+  .trim();
 const setHonorificos = new Set(honorificos.map(norm));
 
 const esHonorifico = setHonorificos.has(norm(invitado));
